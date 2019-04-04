@@ -132,7 +132,6 @@ std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
   double spline_target_y = s(spline_target_x);
   double spline_target_dist = distance(
       0, 0, spline_target_x, spline_target_y);
-  double n = (spline_target_dist/(SPEED_LIMIT*DT));
   std::cout << "spline graph: " << std::endl;
   for (int i = 0; i < 50; ++i) {
     double x = i;
@@ -144,6 +143,7 @@ std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
   std::cout << "target_xs mapped to the xy space: " << std::endl;
   double x_add_on = 0;
   for (int i = 1; i < NUM_TRAJECTORY - prev_size; ++i) {
+    double n = (spline_target_dist/(SPEED_LIMIT*DT));
     double point_x = x_add_on + spline_target_x/n;
     double point_y = s(point_x);
 
@@ -153,7 +153,7 @@ std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
     double shift_x = point_x;
     double shift_y = point_y;
     point_x = (shift_x*cos(ref_yaw) - shift_y*sin(ref_yaw));
-    point_y = (shift_y*cos(ref_yaw) - shift_y*sin(ref_yaw));
+    point_y = (shift_x*sin(ref_yaw) + shift_y*cos(ref_yaw));
     point_x += ref_x;
     point_y += ref_y;
 
