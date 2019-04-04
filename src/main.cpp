@@ -7,6 +7,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "helpers.h"
 #include "json.hpp"
+#include "vehicle.h"
 
 // for convenience
 using nlohmann::json;
@@ -50,8 +51,10 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
+  Vehicle mycar = Vehicle();
+
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
-               &map_waypoints_dx,&map_waypoints_dy]
+               &map_waypoints_dx,&map_waypoints_dy,&mycar]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -97,7 +100,21 @@ int main() {
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
+          mycar.update(car_x, car_y, car_s, car_d, car_yaw, car_speed);
+          mycar.print();
+          int prev_size = previous_path_x.size();
+          if (prev_size >= 2) {
+            double ref_x = previous_path_x[prev_size-1];
+            double ref_prev_x = previous_path_x[prev_size-2];
+            std::cout << "main prev_x: " << ref_x << std::endl;
+            std::cout << "main prev_prev_x: " << ref_prev_x << std::endl;
+          }
+          auto trajectory = mycar.get_tragectory(
+              previous_path_x, previous_path_y,
+              map_waypoints_x, map_waypoints_y, map_waypoints_s);
 
+          next_x_vals = std::get<0>(trajectory);
+          next_y_vals = std::get<1>(trajectory);
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
