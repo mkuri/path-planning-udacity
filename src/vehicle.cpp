@@ -26,13 +26,14 @@ void Vehicle::print() {
   std::cout << "x: " << this->x << ", y: " << this->y << std::endl;
   std::cout << "s: " << this->s << ", d: " << this->d << std::endl;
   std::cout << "yaw: " << this->yaw << ", vel: " << this->vel << std::endl;
+  std::cout << "lane: " << this->lane << std::endl;
+  std::cout << "target_vel: " << this->target_vel << ", target_acc: " << this->target_acc << std::endl;
 }
 
 
 void Vehicle::next_state() {
   this->target_vel = SPEED_LIMIT;
   this->target_acc = ACC_LIMIT;
-
 }
 
 std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
@@ -47,6 +48,7 @@ std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
   double ref_x = this->x;
   double ref_y = this->y;
   double ref_yaw = deg2rad(this->yaw);
+  double ref_vel = this->vel;
 
   // Append previous points to target xy points
   std::cout << "prev_size = " << prev_size << std::endl;
@@ -64,6 +66,7 @@ std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
     double ref_prev_x = previous_path_x[prev_size-2];
     double ref_prev_y = previous_path_y[prev_size-2];
     ref_yaw = atan2(ref_y - ref_prev_y, ref_x - ref_prev_x);
+    ref_vel = this->order_vel;
 
     target_xs.push_back(ref_prev_x);
     target_xs.push_back(ref_x);
@@ -142,8 +145,15 @@ std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
 
   std::cout << "target_xs mapped to the xy space: " << std::endl;
   double x_add_on = 0;
+  std::cout << "ref_vel: ";
   for (int i = 1; i < NUM_TRAJECTORY - prev_size; ++i) {
-    double n = (spline_target_dist/(SPEED_LIMIT*DT));
+    if (ref_vel < this->target_vel - this->target_acc * DT) {
+      ref_vel += this->target_acc * DT;
+    } else if (ref_vel < this->target_vel + this->target_acc * DT) {
+      ref_vel -= this->target_acc * DT;
+    }
+    std::cout << ref_vel << ", ";
+    double n = (spline_target_dist/(ref_vel*DT));
     double point_x = x_add_on + spline_target_x/n;
     double point_y = s(point_x);
 
@@ -160,6 +170,8 @@ std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
     next_x_vals.push_back(point_x);
     next_y_vals.push_back(point_y);
   }
+  this->order_vel = ref_vel;
+  std::cout << std::endl;
 
   std::cout << "target_xs splined and mapped to the xy space: " << std::endl;
   for(auto x: next_x_vals) {

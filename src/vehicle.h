@@ -9,8 +9,8 @@
 #include "spline.h"
 
 const double SPEED_LIMIT = 22.0; // 50mph = 22.352m/s
-const double ACC_LIMIT = 10.0; // m/s^2
-const double JERK_LIMIT = 10.0; // m/s^3
+const double ACC_LIMIT = 9.0; // m/s^2  margin = 1.0m/s^2
+const double JERK_LIMIT = 9.0; // m/s^3  margin = 1.0m/s^3
 const int NUM_TRAJECTORY = 50;
 const double DT = 0.02; // Delta time
 
