@@ -1,7 +1,4 @@
-// #include <iostream>
-// #include "helpers.h"
 #include "vehicle.h"
-// #include "spline.h"
 
 Vehicle::Vehicle() {};
 
@@ -31,9 +28,28 @@ void Vehicle::print() {
 }
 
 
-void Vehicle::next_state() {
+void Vehicle::next_state(nlohmann::basic_json<>& sensor_fusion) {
   this->target_vel = SPEED_LIMIT;
   this->target_acc = ACC_LIMIT;
+
+  for (int i = 0; i < sensor_fusion.size(); ++i) {
+    double id = sensor_fusion[i][0];
+    double x = sensor_fusion[i][1];
+    double y = sensor_fusion[i][2];
+    double vx = sensor_fusion[i][3];
+    double vy = sensor_fusion[i][4];
+    double s = sensor_fusion[i][5];
+    double d = sensor_fusion[i][6];
+    double lane = Vehicle::get_lane(d);
+    double v = sqrt(vx*vx + vy*vy);
+    
+    if (lane == this->lane) {
+      if (s > this->s && (s - this->s) < 30) {
+        std::cout << "Other vehicle is near. The vehicle run at " << v << " m/s" << std::endl;
+        this->target_vel = v;
+      }
+    }
+  }
 }
 
 std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
@@ -149,7 +165,7 @@ std::tuple<std::vector<double>, std::vector<double>> Vehicle::get_tragectory(
   for (int i = 1; i < NUM_TRAJECTORY - prev_size; ++i) {
     if (ref_vel < this->target_vel - this->target_acc * DT) {
       ref_vel += this->target_acc * DT;
-    } else if (ref_vel < this->target_vel + this->target_acc * DT) {
+    } else if (ref_vel > this->target_vel + this->target_acc * DT) {
       ref_vel -= this->target_acc * DT;
     }
     std::cout << ref_vel << ", ";

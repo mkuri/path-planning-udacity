@@ -22,7 +22,7 @@ class Vehicle {
 
     static int get_lane(double d);
     void update(double x, double y, double s, double d, double yaw, double v);
-    void next_state();
+    void next_state(nlohmann::basic_json<>& sensor_fusion);
     void print();
     std::tuple<std::vector<double>, std::vector<double>> get_tragectory(
         nlohmann::basic_json<>& previous_path_x,
@@ -43,6 +43,7 @@ class Vehicle {
     double acc;
     double target_acc;
     double order_acc;
+    State state;
 
     int lane;
 };
