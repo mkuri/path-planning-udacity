@@ -43,6 +43,8 @@ void Vehicle::next_state(nlohmann::basic_json<>& sensor_fusion) {
   this->closest_vehicle_ids = interpret_sensor_fusion(sensor_fusion);
 
   if (this->state == State::LCL || this->state == State::LCR) {
+    this->target_vel = SPEED_LIMIT;
+    this->target_acc = ACC_LIMIT;
     double target_d = 2 + 4 * this->target_lane;
     std::cout << "target_d: " << target_d << std::endl;
     if (abs(target_d - this->d) < 0.2) {
@@ -189,12 +191,17 @@ double Vehicle::cost_lane(int lane, nlohmann::basic_json<>& sensor_fusion) {
   // double a = fr_dist + fr_v * (fr_dist / SPEED_LIMIT - fr_v);
   double a = fr_dist;
   if (this->lane == lane) {
-    a += 10;
+    a += 5;
   }
   cost += exp(1/a);
 
   // Check collision
-  if (bk_dist < 10 || (bk_dist < 20 && bk_v > this->vel)) {
+  double diff_v = bk_v - this->vel;
+  if (bk_dist < 10 || (bk_dist - (diff_v * 5)) < 10) {
+    std::cout << "Check collission!" << std::endl;
+    std::cout << "bk_dist: " << bk_dist << std::endl;
+    std::cout << "diff_v: " << diff_v << std::endl;
+    std::cout << "bk_dist - diff_v*5: " << (bk_dist - diff_v*5) << std::endl;
     cost += 10;
   }
 
