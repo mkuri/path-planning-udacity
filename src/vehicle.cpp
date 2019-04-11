@@ -27,89 +27,101 @@ void Vehicle::print() {
   std::cout << "yaw: " << this->yaw << ", vel: " << this->vel << std::endl;
   std::cout << "lane: " << this->lane << std::endl;
   std::cout << "target_vel: " << this->target_vel << ", target_acc: " << this->target_acc << std::endl;
+  std::cout << "state: ";
+  if (this->state == State::KL) {
+    std::cout << "Keep Lane";
+  } else if (this->state == State::LCL) {
+    std::cout << "Lane Change Left";
+  } else if (this->state == State::LCR) {
+    std::cout << "Lane Change Right";
+  }
+  std::cout << std::endl;
 }
 
 
 void Vehicle::next_state(nlohmann::basic_json<>& sensor_fusion) {
-  this->target_vel = SPEED_LIMIT;
-  this->target_acc = ACC_LIMIT;
-  this->state = State::KL;
   this->closest_vehicle_ids = interpret_sensor_fusion(sensor_fusion);
 
-  if (this->lane == 0) {
-    std::cout << "im in the lane 0" << std::endl;
-    int front_vehicle_id = closest_vehicle_ids[0][0];
-    double cost_kl = cost_lane(0, sensor_fusion);
-    double cost_lcr = cost_lane(1, sensor_fusion);
-    std::cout << "cost_kl: " << cost_kl << std::endl;
-    std::cout << "cost_lcr: " << cost_lcr << std::endl;
-    if (cost_kl <= cost_lcr) {
-      this->target_lane = this->lane;
+  if (this->state == State::LCL || this->state == State::LCR) {
+    double target_d = 2 + 4 * this->target_lane;
+    std::cout << "target_d: " << target_d << std::endl;
+    if (abs(target_d - this->d) < 0.2) {
       this->state = State::KL;
-      if (front_vehicle_id >= 0) {
-        double s = sensor_fusion[front_vehicle_id][5];
-        double vx = sensor_fusion[front_vehicle_id][3];
-        double vy = sensor_fusion[front_vehicle_id][4];
-        double v = sqrt(vx*vx + vy*vy);
-        if((s - this->s) < 30) {
-          this->target_vel = v;
-        }
-      }
-    } else {
-      this->target_lane = 1;
-      this->state = State::LCR;
     }
-  } else if (this->lane == 1) {
-    std::cout << "im in the lane 1" << std::endl;
-    int front_vehicle_id = closest_vehicle_ids[1][0];
-    double cost_kl = cost_lane(1, sensor_fusion);
-    double cost_lcl = cost_lane(0, sensor_fusion);
-    double cost_lcr = cost_lane(2, sensor_fusion);
-    std::cout << "cost_kl: " << cost_kl << std::endl;
-    std::cout << "cost_lcl: " << cost_lcl << std::endl;
-    std::cout << "cost_lcr: " << cost_lcr << std::endl;
+  } else {
+    if (this->lane == 0) {
+      std::cout << "im in the lane 0" << std::endl;
+      double cost_kl = cost_lane(0, sensor_fusion);
+      double cost_lcr = cost_lane(1, sensor_fusion);
+      std::cout << "cost_kl: " << cost_kl << std::endl;
+      std::cout << "cost_lcr: " << cost_lcr << std::endl;
+      if (cost_kl <= cost_lcr) {
+        keep_lane();
+      } else {
+        change_lane(1);
+      }
+    } else if (this->lane == 1) {
+      std::cout << "im in the lane 1" << std::endl;
+      double cost_kl = cost_lane(1, sensor_fusion);
+      double cost_lcl = cost_lane(0, sensor_fusion);
+      double cost_lcr = cost_lane(2, sensor_fusion);
+      std::cout << "cost_kl: " << cost_kl << std::endl;
+      std::cout << "cost_lcl: " << cost_lcl << std::endl;
+      std::cout << "cost_lcr: " << cost_lcr << std::endl;
 
-    if (cost_kl <= cost_lcl && cost_kl <= cost_lcr) {
-      this->target_lane = this->lane;
-      this->state = State::KL;
-      if (front_vehicle_id >= 0) {
-        double s = sensor_fusion[front_vehicle_id][5];
-        double vx = sensor_fusion[front_vehicle_id][3];
-        double vy = sensor_fusion[front_vehicle_id][4];
-        double v = sqrt(vx*vx + vy*vy);
-        if((s - this->s) < 30) {
-          this->target_vel = v;
-        }
+      if (cost_kl <= cost_lcl && cost_kl <= cost_lcr) {
+        keep_lane();
+      } else if (cost_lcl <= cost_lcr) {
+        change_lane(0);
+      } else {
+        change_lane(2);
       }
-    } else if (cost_lcl <= cost_lcr) {
-      this->target_lane = 0;
-      this->state = State::LCL;
-    } else {
-      this->target_lane = 2;
-      this->state = State::LCR;
+    } else if (this->lane == 2) {
+      std::cout << "im in the lane 2" << std::endl;
+      double cost_kl = cost_lane(2, sensor_fusion);
+      double cost_lcl = cost_lane(1, sensor_fusion);
+      std::cout << "cost_kl: " << cost_kl << std::endl;
+      std::cout << "cost_lcl: " << cost_lcl << std::endl;
+      if (cost_kl <= cost_lcl) {
+        keep_lane();
+      } else {
+        change_lane(1);
+      }
     }
-  } else if (this->lane == 2) {
-    std::cout << "im in the lane 2" << std::endl;
-    int front_vehicle_id = closest_vehicle_ids[2][0];
-    double cost_kl = cost_lane(2, sensor_fusion);
-    double cost_lcl = cost_lane(1, sensor_fusion);
-    std::cout << "cost_kl: " << cost_kl << std::endl;
-    std::cout << "cost_lcl: " << cost_lcl << std::endl;
-    if (cost_kl <= cost_lcl) {
-      this->target_lane = this->lane;
-      this->state = State::KL;
-      if (front_vehicle_id >= 0) {
-        double s = sensor_fusion[front_vehicle_id][5];
-        double vx = sensor_fusion[front_vehicle_id][3];
-        double vy = sensor_fusion[front_vehicle_id][4];
-        double v = sqrt(vx*vx + vy*vy);
-        if((s - this->s) < 30) {
-          this->target_vel = v;
-        }
-      }
-    } else {
-      this->target_lane = 1;
-      this->state = State::LCL;
+  }
+  slow_down(sensor_fusion);
+}
+
+void Vehicle::keep_lane() {
+  this->target_lane = this->lane;
+  this->state = State::KL;
+  this->target_vel = SPEED_LIMIT;
+  this->target_acc = ACC_LIMIT;
+}
+
+void Vehicle::change_lane(int lane) {
+  this->target_lane = lane;
+  if (lane < this->lane) {
+    this->state = State::LCL;
+  } else {
+    this->state = State::LCR;
+  }
+  this->target_vel = SPEED_LIMIT;
+  this->target_acc = ACC_LIMIT;
+}
+
+void Vehicle::slow_down(nlohmann::basic_json<>& sensor_fusion) {
+  int fr_vehicle_id = this->closest_vehicle_ids[this->lane][0];
+  if (fr_vehicle_id >= 0) {
+    double vx = sensor_fusion[fr_vehicle_id][3];
+    double vy = sensor_fusion[fr_vehicle_id][4];
+    double s = sensor_fusion[fr_vehicle_id][5];
+    double v = sqrt(vx*vx + vy*vy);
+    if ((s - this->s) < 30) {
+      this->target_vel = v;
+    }
+    if ((s - this->s) < 20) {
+      this->target_vel = v * 0.8;
     }
   }
 }
@@ -176,10 +188,13 @@ double Vehicle::cost_lane(int lane, nlohmann::basic_json<>& sensor_fusion) {
 
   // double a = fr_dist + fr_v * (fr_dist / SPEED_LIMIT - fr_v);
   double a = fr_dist;
+  if (this->lane == lane) {
+    a += 10;
+  }
   cost += exp(1/a);
 
   // Check collision
-  if (bk_dist < 10 && bk_v > this->vel) {
+  if (bk_dist < 10 || (bk_dist < 20 && bk_v > this->vel)) {
     cost += 10;
   }
 

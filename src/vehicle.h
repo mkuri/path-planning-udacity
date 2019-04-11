@@ -54,6 +54,9 @@ class Vehicle {
     double cost_keep_lane(nlohmann::basic_json<>& sensor_fusion);
     double cost_lane_change(int lane, nlohmann::basic_json<>& sensor_fusion);
     double cost_lane(int lane, nlohmann::basic_json<>& sensor_fusion);
+    void keep_lane();
+    void change_lane(int lane);
+    void slow_down(nlohmann::basic_json<>& sensor_fusion);
     std::vector<std::vector<double>> get_wps_keep_lane(
         std::vector<double>& map_waypoints_x,
         std::vector<double>& map_waypoints_y,
