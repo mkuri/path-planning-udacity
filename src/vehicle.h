@@ -51,8 +51,6 @@ class Vehicle {
     int target_lane;
 
     std::vector<std::vector<int>> interpret_sensor_fusion(nlohmann::basic_json<>& sensor_fusion);
-    double cost_keep_lane(nlohmann::basic_json<>& sensor_fusion);
-    double cost_lane_change(int lane, nlohmann::basic_json<>& sensor_fusion);
     double cost_lane(int lane, nlohmann::basic_json<>& sensor_fusion);
     void keep_lane();
     void change_lane(int lane);
